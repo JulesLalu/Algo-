@@ -26,12 +26,10 @@ def dominant(g: nx.Graph):
         :param g: le graphe est donné dans le format networkx : https://networkx.github.io/documentation/stable/reference/classes/graph.html
 
     """
-    modified_graph = nx.Graph(g)
     domi_graph = nx.Graph()
-    while len(domi_graph.nodes) < len(g) :
-        modified_graph.remove_nodes_from(domi_graph.nodes)
+    while len(domi_graph.nodes) < len(g.nodes) :
         nodes_to_add=set()
-        for node in modified_graph.nodes:
+        for node in set(g.nodes).difference(domi_graph.nodes):
             new_max = get_neighbours(g, str(node)).difference(domi_graph.nodes)
             if len(new_max) >= len(nodes_to_add):
                 nodes_to_add = new_max
