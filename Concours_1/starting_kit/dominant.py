@@ -1,6 +1,5 @@
-from random import random
 import sys, os, time
-from typing import Optional, Set, List
+from typing import Set
 import networkx as nx
 
 def get_neighbours(g: nx.Graph, node: int) -> Set[int]:
