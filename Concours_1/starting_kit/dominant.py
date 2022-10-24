@@ -3,123 +3,52 @@ import sys, os, time
 from typing import Optional, Set, List
 import networkx as nx
 
-class Node:
-    def __init__(self, id: int, choices: int = 0, color: str = 0):
-        self.id = id
-        self.color = color
-        self.choices = choices
-        self.dominated = 0
+def get_neighbours(g: nx.Graph, node: int) -> Set[int]:
+    return {int(node) for node in g.adj[node].keys()}
 
-
-class Graph:
-    def __init__(self, g: nx.Graph):
-        self.g = g
-        id_list =sorted([int(id) for id in g.nodes])
-        self.nodes: List[Node] = list(Node(id=id, color='white', choices=len(g.adj[str(id)].keys())+1) for id in id_list)
-        self.n_dominated = 0
-        self.go_back = False
-        self.dominant: List[int] = []
-        self.max_degree = max([len([g.adj[str(id)].keys()]) for id in id_list]) + 1
-        self.min_size = len(id_list)
-        self.min_dom = id_list
-
-    def get_neighbours(self, id: int) -> List[int] :
-        return list(int(id) for id in self.g.adj[str(id)].keys())
-                
-
-def dominant_rec(id: int, graph: Graph):
-    if graph.go_back or (len(graph.dominant)+int((len(graph.nodes)-graph.n_dominated)/graph.max_degree)>=graph.min_size): 
-        graph.go_back = False
-        return None
-    if id==len(graph.nodes):
-        if len(graph.dominant) <= graph.min_size:
-            graph.min_size = len(graph.dominant)
-            graph.min_dom = graph.dominant.copy()
-        return None
-
-    neighbours = graph.get_neighbours(id)
-    graph.nodes[id].color = 'blue'
-    graph.nodes[id].choices -= 1
-    for neighbour in neighbours:
-        graph.nodes[neighbour].choices -= 1
-        if graph.nodes[neighbour].choices == 0 :
-            graph.go_back = True
-
-    dominant_rec(id+1, graph)
-
-    for neighbour in neighbours:
-        graph.nodes[neighbour].choices += 1
-
-    graph.nodes[id].color = 'red'
-    graph.dominant.append(id)
-    graph.n_dominated+=len(neighbours)+1
-    
-    if graph.min_size==len(graph.nodes):
-        dominant_rec(id+1, graph)
+def is_covered(g: nx.Graph, node: int) -> bool:
+    covered=False
+    if g.nodes[node]['dominant']==True:
+        covered=True
     else:
-        if int(random()*3)==1:
-            return dominant_rec(id+1, graph)
-
-    graph.nodes[id].color = 'white'
-    graph.dominant.pop()
-    graph.n_dominated-=(len(neighbours)+1)
-    
-
+        for neighbour in get_neighbours(g, node):
+            if g.nodes[neighbour]['dominant']==True:
+                covered=True
+                break
+    return covered
+        
+                
 def dominant(g: nx.Graph):
-    graph = Graph(g)
-    dominant_rec(0, graph)
-    return graph.min_dom
+    """
+        A Faire:         
+        - Ecrire une fonction qui retourne le dominant du graphe non dirigé g passé en parametre.
+        - cette fonction doit retourner la liste des noeuds d'un petit dominant de g
 
-# def dominant(g: nx.Graph):
-#     graph = Graph(g)
-#     print([node.id for node in graph.nodes])
-#     for node in graph.nodes:
-#         print(node.id)
-#         if len([node for node in graph.nodes if node.color == 'white'])== 0:
-#             print("Breaking")
-#             break 
-#         neighbours =  graph.get_neighbours(node)
-#         for neighbour in neighbours:
-#             blue = True
-#             if neighbour.choices == 1 and neighbour.dominated == 0:
-#                 blue = False
-#                 break
-#         if blue: 
-#             for neighbour in neighbours:
-#                 graph.nodes[neighbour.id].choices -=1
-#             graph.nodes[node.id].color = 'blue'
-#         else:
-#             for neighbour in neighbours:
-#                 graph.nodes[neighbour.id].dominated +=1
-#             graph.nodes[node.id].color = 'red'
-#     return [node.id for node in graph.nodes if node.color == 'red']
+        :param g: le graphe est donné dans le format networkx : https://networkx.github.io/documentation/stable/reference/classes/graph.html
 
-    
-
-# def dominant(g: nx.Graph):
-#     """
-#         A Faire:         
-#         - Ecrire une fonction qui retourne le dominant du graphe non dirigé g passé en parametre.
-#         - cette fonction doit retourner la liste des noeuds d'un petit dominant de g
-
-#         :param g: le graphe est donné dans le format networkx : https://networkx.github.io/documentation/stable/reference/classes/graph.html
-
-#     """
-#     graph_nodes = set(g.nodes)
-#     current_graph = set()
-#     domi = set()
-#     while len(current_graph) < len(graph_nodes):
-#         nodes_to_add: Set = {}
-#         domi_node = 1
-#         for node in graph_nodes.difference(domi):
-#             new_max = get_neighbours(g, node).difference(current_graph)
-#             new_max.add(node)
-#             if len(new_max) >= len(nodes_to_add):
-#                 nodes_to_add = new_max
-#                 domi_node=node
-#         domi = domi.union({domi_node})
-#         current_graph = current_graph.union(nodes_to_add)
-#     return list(domi)
+    """
+    modified_graph = nx.Graph(g)
+    domi_graph = nx.Graph()
+    while len(domi_graph.nodes) < len(g) :
+        modified_graph.remove_nodes_from(domi_graph.nodes)
+        nodes_to_add=set()
+        for node in modified_graph.nodes:
+            new_max = get_neighbours(g, str(node)).difference(domi_graph.nodes)
+            if len(new_max) >= len(nodes_to_add):
+                nodes_to_add = new_max
+                domi_node=int(node)
+        domi_graph.add_edges_from( [ ( domi_node, nd) for nd in nodes_to_add] )
+        domi_graph.nodes[domi_node]['dominant']=True
+        for nd in nodes_to_add:
+            domi_graph.nodes[nd]['dominant']=False
+    inter_l = [node for node in domi_graph.nodes if domi_graph.nodes[node]['dominant']]
+    for node in inter_l:
+        domi_graph.nodes[node]['dominant']=False
+        for test in domi_graph.nodes:
+            if not is_covered(domi_graph, test):
+                domi_graph.nodes[node]['dominant']=True
+                break   
+    return [node for node in domi_graph.nodes if domi_graph.nodes[node]['dominant']]
 
 
 
@@ -143,6 +72,7 @@ if __name__=="__main__":
     # fichier des reponses depose dans le output_dir et annote par date/heure
     output_filename = 'answers_{}.txt'.format(time.strftime("%d%b%Y_%H%M%S", time.localtime()))             
     output_file = open(os.path.join(output_dir, output_filename), 'w')
+    score = 0
 
     for graph_filename in sorted(os.listdir(input_dir)):
         #print(graph_filename)
@@ -156,6 +86,8 @@ if __name__=="__main__":
         output_file.write(graph_filename)
         for node in D:
             output_file.write(' {}'.format(node))
+            score+=1
         output_file.write('\n')
+    print(score)
         
     output_file.close()
