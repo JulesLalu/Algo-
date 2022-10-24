@@ -15,17 +15,8 @@ def is_covered(g: nx.Graph, node: int) -> bool:
                 covered=True
                 break
     return covered
-        
-                
-def dominant(g: nx.Graph):
-    """
-        A Faire:         
-        - Ecrire une fonction qui retourne le dominant du graphe non dirigé g passé en parametre.
-        - cette fonction doit retourner la liste des noeuds d'un petit dominant de g
-
-        :param g: le graphe est donné dans le format networkx : https://networkx.github.io/documentation/stable/reference/classes/graph.html
-
-    """
+    
+def greedy_graph(g: nx.Graph) -> nx.Graph:
     domi_graph = nx.Graph()
     while len(domi_graph.nodes) < len(g.nodes) :
         nodes_to_add=set()
@@ -38,14 +29,30 @@ def dominant(g: nx.Graph):
         domi_graph.nodes[domi_node]['dominant']=True
         for nd in nodes_to_add:
             domi_graph.nodes[nd]['dominant']=False
-    inter_l = [node for node in domi_graph.nodes if domi_graph.nodes[node]['dominant']]
+    return domi_graph
+
+def purify_graph(g: nx.Graph) -> nx.Graph:
+    inter_l = [node for node in g.nodes if g.nodes[node]['dominant']]
     for node in inter_l:
-        domi_graph.nodes[node]['dominant']=False
-        for test in domi_graph.nodes:
-            if not is_covered(domi_graph, test):
-                domi_graph.nodes[node]['dominant']=True
-                break   
-    return [node for node in domi_graph.nodes if domi_graph.nodes[node]['dominant']]
+        g.nodes[node]['dominant']=False
+        for test in g.nodes:
+            if not is_covered(g, test):
+                g.nodes[node]['dominant']=True
+                break 
+    return g
+                
+def dominant(g: nx.Graph):
+    """
+        A Faire:         
+        - Ecrire une fonction qui retourne le dominant du graphe non dirigé g passé en parametre.
+        - cette fonction doit retourner la liste des noeuds d'un petit dominant de g
+
+        :param g: le graphe est donné dans le format networkx : https://networkx.github.io/documentation/stable/reference/classes/graph.html
+
+    """
+    domi_graph = greedy_graph(g)
+    purified_graph = purify_graph(domi_graph)
+    return [node for node in domi_graph.nodes if purified_graph.nodes[node]['dominant']]
 
 
 
