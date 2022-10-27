@@ -2,8 +2,14 @@ import sys, os, time
 from typing import Set
 import networkx as nx
 
+def convert_graph_to_int(g: nx.Graph) -> nx.Graph:
+    converted_graph = nx.Graph()
+    for edge in g.edges:
+        converted_graph.add_edge(int(edge[0]), int(edge[1]))
+    return converted_graph
+
 def get_neighbours(g: nx.Graph, node: int) -> Set[int]:
-    return {int(node) for node in g.adj[node].keys()}
+    return {node for node in g.adj[node].keys()}
 
 def is_covered(g: nx.Graph, node: int) -> bool:
     covered=False
@@ -20,11 +26,11 @@ def greedy_graph(g: nx.Graph) -> nx.Graph:
     domi_graph = nx.Graph()
     while len(domi_graph.nodes) < len(g.nodes) :
         nodes_to_add=set()
-        for node in set(g.nodes).difference(domi_graph.nodes):
-            new_max = get_neighbours(g, str(node)).difference(domi_graph.nodes)
+        for node in set(g.nodes):
+            new_max = get_neighbours(g, node).difference(domi_graph.nodes)
             if len(new_max) >= len(nodes_to_add):
                 nodes_to_add = new_max
-                domi_node=int(node)
+                domi_node=node
         domi_graph.add_edges_from( [ ( domi_node, nd) for nd in nodes_to_add] )
         domi_graph.nodes[domi_node]['dominant']=True
         for nd in nodes_to_add:
@@ -40,6 +46,25 @@ def purify_graph(g: nx.Graph) -> nx.Graph:
                 g.nodes[node]['dominant']=True
                 break 
     return g
+
+def cycle_domi(g: nx.Graph):
+    node_to_rm = list(g.nodes)[0]
+    neighbours_0 = list(get_neighbours(g, node_to_rm))
+    construct_domi = g.copy()
+    construct_domi.remove_node(node_to_rm)
+    g.nodes[node_to_rm]['dominant']=False
+    path = nx.shortest_path(construct_domi, neighbours_0[0], neighbours_0[1])
+    i=0
+    for node in path:
+        if i%3==0:
+            g.nodes[node]['dominant']=True
+        else:
+            g.nodes[node]['dominant']=False
+        i+=1
+    if (i-1)%3==2:
+        g.nodes[path[-1]]['dominant']=True
+    return g
+
                 
 def dominant(g: nx.Graph):
     """
@@ -50,9 +75,17 @@ def dominant(g: nx.Graph):
         :param g: le graphe est donné dans le format networkx : https://networkx.github.io/documentation/stable/reference/classes/graph.html
 
     """
-    domi_graph = greedy_graph(g)
-    purified_graph = purify_graph(domi_graph)
-    return [node for node in domi_graph.nodes if purified_graph.nodes[node]['dominant']]
+    graph = convert_graph_to_int(g)
+    list_degree=[graph.degree(node) for node in graph.nodes]
+    if min(list_degree)==max(list_degree):
+        best_graph=cycle_domi(graph)
+    else:
+        domi_graph = greedy_graph(graph)
+        best_graph = purify_graph(domi_graph)
+    for node in best_graph.nodes:
+        if not is_covered(best_graph, node):
+            print(f"Not Domining for node {node}")
+    return [node for node in best_graph.nodes if best_graph.nodes[node]['dominant']]
 
 
 
