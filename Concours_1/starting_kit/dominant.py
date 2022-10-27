@@ -1,3 +1,4 @@
+from statistics import mean
 import sys, os, time
 from typing import Set
 import networkx as nx
@@ -22,8 +23,8 @@ def is_covered(g: nx.Graph, node: int) -> bool:
                 break
     return covered
     
-def greedy_graph(g: nx.Graph) -> nx.Graph:
-    domi_graph = nx.Graph()
+def greedy_graph(g: nx.Graph, partly_domi: nx.Graph) -> nx.Graph:
+    domi_graph = partly_domi
     while len(domi_graph.nodes) < len(g.nodes) :
         nodes_to_add=set()
         for node in set(g.nodes):
@@ -47,23 +48,27 @@ def purify_graph(g: nx.Graph) -> nx.Graph:
                 break 
     return g
 
-def cycle_domi(g: nx.Graph):
-    node_to_rm = list(g.nodes)[0]
-    neighbours_0 = list(get_neighbours(g, node_to_rm))
-    construct_domi = g.copy()
-    construct_domi.remove_node(node_to_rm)
-    g.nodes[node_to_rm]['dominant']=False
-    path = nx.shortest_path(construct_domi, neighbours_0[0], neighbours_0[1])
-    i=0
-    for node in path:
-        if i%3==0:
-            g.nodes[node]['dominant']=True
-        else:
-            g.nodes[node]['dominant']=False
-        i+=1
-    if (i-1)%3==2:
-        g.nodes[path[-1]]['dominant']=True
-    return g
+def begin_cycle_domi(g: nx.Graph) -> nx.Graph:
+    partial_domi = nx.Graph()
+    cycles = sorted(nx.cycle_basis(g), key= lambda x: len(x), reverse=True)
+    if len(cycles)>10:
+        largest_cycles = sorted(nx.cycle_basis(g), key= lambda x: len(x), reverse=True)[:10]
+    else: 
+        largest_cycles = cycles
+    for cycle in largest_cycles:
+        if mean([g.degree(node) for node in cycle])<=2.2:
+            for i, node in enumerate(cycle):
+                if i%3==0:
+                    neighbours = get_neighbours(g, node)
+                    partial_domi.add_edges_from([ ( node, nd) for nd in neighbours])
+                    partial_domi.nodes[node]['dominant']=True
+                    for nd in neighbours:
+                        neighbours_2 = get_neighbours(partial_domi, nd)
+                        partial_domi.nodes[nd]['dominant']=False
+                        for neighbour in neighbours_2:
+                            if not is_covered(partial_domi, neighbour):
+                                partial_domi.remove_node(neighbour)
+    return partial_domi
 
                 
 def dominant(g: nx.Graph):
@@ -76,16 +81,10 @@ def dominant(g: nx.Graph):
 
     """
     graph = convert_graph_to_int(g)
-    list_degree=[graph.degree(node) for node in graph.nodes]
-    if min(list_degree)==max(list_degree):
-        best_graph=cycle_domi(graph)
-    else:
-        domi_graph = greedy_graph(graph)
-        best_graph = purify_graph(domi_graph)
-    for node in best_graph.nodes:
-        if not is_covered(best_graph, node):
-            print(f"Not Domining for node {node}")
-    return [node for node in best_graph.nodes if best_graph.nodes[node]['dominant']]
+    partly_domi = begin_cycle_domi(graph)
+    domi_graph = greedy_graph(graph, partly_domi)
+    purified_graph = purify_graph(domi_graph)
+    return [node for node in purified_graph.nodes if purified_graph.nodes[node]['dominant']]
 
 
 
