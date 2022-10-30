@@ -1,6 +1,7 @@
 import sys, os, time
 # pour lire un dictionnaire d'un fichier
 import ast
+from typing import Set
 # pour faire la statistique
 import numpy
 # pour utiliser random, si besoin est
@@ -17,6 +18,7 @@ def mon_algo_est_deterministe():
 ##############################################################
 
 # La fonction à completer pour la compétition
+
 def min_set_cover_online(univers_size, collection_size, set_collection_restant, el, covered_already):
     """
         A Faire:         
@@ -34,22 +36,14 @@ def min_set_cover_online(univers_size, collection_size, set_collection_restant, 
 
         :return l'ensemble couvrant el (None si el déjà couvert) et tous les éléménts déjà couverts par une solution en constuction  
     """
-
-    # ###############################
-    # complétez cette fonction en choisissant un sous-enseble couvrant l'élément courant el
-    # ###############################
-
-    # l'algo le plus bête pour voir comment ce truc marche
-    if mon_algo_est_deterministe():
-        solution, covered_already = det_min_set_cover_online(univers_size, collection_size, set_collection_restant, el, covered_already)
-    else:
-        solution, covered_already = random_min_set_cover_online(univers_size, collection_size, set_collection_restant, el, covered_already)
-
-    #   commentez la ligne ci-dessous après avoir écrit votre code
-    solution, covered_already = [], set()
-    # 
-
-    return solution, covered_already # tout est vide
+    solution=None
+    if el not in covered_already:
+        for set, elements in set_collection_restant.items():
+            if el in elements:
+                solution = set
+                covered_already = covered_already.union(elements)
+                break
+    return solution, covered_already
 
 
 ##############################################################
