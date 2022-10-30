@@ -38,11 +38,13 @@ def min_set_cover_online(univers_size, collection_size, set_collection_restant, 
     """
     solution=None
     if el not in covered_already:
+        max_len = 0
         for set, elements in set_collection_restant.items():
             if el in elements:
-                solution = set
-                covered_already = covered_already.union(elements)
-                break
+                if len(elements)>max_len:
+                    max_len=len(elements)
+                    solution = set
+                    covered_already = covered_already.union(elements)
     return solution, covered_already
 
 
