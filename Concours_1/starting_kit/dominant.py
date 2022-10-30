@@ -1,9 +1,16 @@
+from statistics import mean
 import sys, os, time
 from typing import Set
 import networkx as nx
 
+def convert_graph_to_int(g: nx.Graph) -> nx.Graph:
+    converted_graph = nx.Graph()
+    for edge in g.edges:
+        converted_graph.add_edge(int(edge[0]), int(edge[1]))
+    return converted_graph
+
 def get_neighbours(g: nx.Graph, node: int) -> Set[int]:
-    return {int(node) for node in g.adj[node].keys()}
+    return {node for node in g.adj[node].keys()}
 
 def is_covered(g: nx.Graph, node: int) -> bool:
     covered=False
@@ -16,15 +23,15 @@ def is_covered(g: nx.Graph, node: int) -> bool:
                 break
     return covered
     
-def greedy_graph(g: nx.Graph) -> nx.Graph:
-    domi_graph = nx.Graph()
+def greedy_graph(g: nx.Graph, partly_domi: nx.Graph) -> nx.Graph:
+    domi_graph = partly_domi
     while len(domi_graph.nodes) < len(g.nodes) :
         nodes_to_add=set()
-        for node in set(g.nodes).difference(domi_graph.nodes):
-            new_max = get_neighbours(g, str(node)).difference(domi_graph.nodes)
+        for node in set(g.nodes):
+            new_max = get_neighbours(g, node).difference(domi_graph.nodes)
             if len(new_max) >= len(nodes_to_add):
                 nodes_to_add = new_max
-                domi_node=int(node)
+                domi_node=node
         domi_graph.add_edges_from( [ ( domi_node, nd) for nd in nodes_to_add] )
         domi_graph.nodes[domi_node]['dominant']=True
         for nd in nodes_to_add:
@@ -40,6 +47,29 @@ def purify_graph(g: nx.Graph) -> nx.Graph:
                 g.nodes[node]['dominant']=True
                 break 
     return g
+
+def begin_cycle_domi(g: nx.Graph) -> nx.Graph:
+    partial_domi = nx.Graph()
+    cycles = sorted(nx.cycle_basis(g), key= lambda x: len(x), reverse=True)
+    if len(cycles)>10:
+        largest_cycles = sorted(nx.cycle_basis(g), key= lambda x: len(x), reverse=True)[:10]
+    else: 
+        largest_cycles = cycles
+    for cycle in largest_cycles:
+        if mean([g.degree(node) for node in cycle])<=2.2:
+            for i, node in enumerate(cycle):
+                if i%3==0:
+                    neighbours = get_neighbours(g, node)
+                    partial_domi.add_edges_from([ ( node, nd) for nd in neighbours])
+                    partial_domi.nodes[node]['dominant']=True
+                    for nd in neighbours:
+                        neighbours_2 = get_neighbours(partial_domi, nd)
+                        partial_domi.nodes[nd]['dominant']=False
+                        for neighbour in neighbours_2:
+                            if not is_covered(partial_domi, neighbour):
+                                partial_domi.remove_node(neighbour)
+    return partial_domi
+
                 
 def dominant(g: nx.Graph):
     """
@@ -50,9 +80,11 @@ def dominant(g: nx.Graph):
         :param g: le graphe est donné dans le format networkx : https://networkx.github.io/documentation/stable/reference/classes/graph.html
 
     """
-    domi_graph = greedy_graph(g)
+    graph = convert_graph_to_int(g)
+    partly_domi = begin_cycle_domi(graph)
+    domi_graph = greedy_graph(graph, partly_domi)
     purified_graph = purify_graph(domi_graph)
-    return [node for node in domi_graph.nodes if purified_graph.nodes[node]['dominant']]
+    return [node for node in purified_graph.nodes if purified_graph.nodes[node]['dominant']]
 
 
 
