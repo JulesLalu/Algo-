@@ -1,7 +1,6 @@
 import sys, os, time
 # pour lire un dictionnaire d'un fichier
 import ast
-from typing import Set
 # pour faire la statistique
 import numpy
 # pour utiliser random, si besoin est
@@ -38,11 +37,13 @@ def min_set_cover_online(univers_size, collection_size, set_collection_restant, 
     """
     solution=None
     if el not in covered_already:
-        max_len = 0
         for set, elements in set_collection_restant.items():
+            score = numpy.inf
             if el in elements:
-                if len(elements)>max_len:
-                    max_len=len(elements)
+                cost=len(elements)
+                elems_added = elements.difference(covered_already)
+                if len(elems_added)!=0 and cost/len(elems_added)<score:
+                    score = cost/len(elems_added)
                     solution = set
                     covered_already = covered_already.union(elements)
     return solution, covered_already
