@@ -9,7 +9,7 @@ import random
 def mon_algo_est_deterministe():
     # par défaut l'algo est considéré comme déterministe
     # changez response = False dans le cas contraire
-    response = True
+    response = False
     return response 
 
 ##############################################################
@@ -36,17 +36,31 @@ def min_set_cover_online(univers_size, collection_size, set_collection_restant, 
         :return l'ensemble couvrant el (None si el déjà couvert) et tous les éléménts déjà couverts par une solution en constuction  
     """
     solution=None
+    final_cover_min = covered_already.copy()
+    final_cover_max = covered_already.copy()
+    final_cover = covered_already.copy()
     if el not in covered_already:
+        score_min = numpy.inf
+        score_max = 0
         for set, elements in set_collection_restant.items():
-            score = numpy.inf
             if el in elements:
                 cost=len(elements)
                 elems_added = elements.difference(covered_already)
-                if len(elems_added)!=0 and cost/len(elems_added)<score:
-                    score = cost/len(elems_added)
-                    solution = set
-                    covered_already = covered_already.union(elements)
-    return solution, covered_already
+                if len(elems_added)!=0 and cost/len(elems_added)<score_min:
+                    score_min = cost/len(elems_added)
+                    solution_min = set
+                    final_cover_min = covered_already.union(elements)
+                if len(elems_added)!=0 and cost/len(elems_added)>score_max:
+                    score_max = cost/len(elems_added)
+                    solution_max = set
+                    final_cover_max = covered_already.union(elements)
+        if random.randint(1,2)==1:
+            solution = solution_max
+            final_cover = final_cover_max
+        else :
+            solution = solution_min
+            final_cover = final_cover_min
+    return solution, final_cover
 
 
 ##############################################################
