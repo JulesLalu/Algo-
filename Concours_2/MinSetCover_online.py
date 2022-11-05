@@ -9,7 +9,7 @@ import random
 def mon_algo_est_deterministe():
     # par défaut l'algo est considéré comme déterministe
     # changez response = False dans le cas contraire
-    response = False
+    response = True
     return response 
 
 ##############################################################
@@ -35,31 +35,22 @@ def min_set_cover_online(univers_size, collection_size, set_collection_restant, 
 
         :return l'ensemble couvrant el (None si el déjà couvert) et tous les éléménts déjà couverts par une solution en constuction  
     """
-    solution=None
-    final_cover_min = covered_already.copy()
-    final_cover_max = covered_already.copy()
+    if el in covered_already:
+        return None, covered_already
+    high_score = 0
     final_cover = covered_already.copy()
-    if el not in covered_already:
-        score_min = numpy.inf
-        score_max = 0
-        for set, elements in set_collection_restant.items():
-            if el in elements:
-                cost=len(elements)
-                elems_added = elements.difference(covered_already)
-                if len(elems_added)!=0 and cost/len(elems_added)<score_min:
-                    score_min = cost/len(elems_added)
-                    solution_min = set
-                    final_cover_min = covered_already.union(elements)
-                if len(elems_added)!=0 and cost/len(elems_added)>score_max:
-                    score_max = cost/len(elems_added)
-                    solution_max = set
-                    final_cover_max = covered_already.union(elements)
-        if random.randint(1,2)==1:
-            solution = solution_max
-            final_cover = final_cover_max
-        else :
-            solution = solution_min
-            final_cover = final_cover_min
+    solution = None
+    for set, elements in set_collection_restant.items():
+        if el in elements:
+            score = 0
+            for set1 in set_collection_restant.keys():
+                if set1 != set:
+                    score_base = set_collection_restant[set1].intersection(elements).difference(covered_already)
+                    score+= len(score_base)
+            if score >= high_score:
+                high_score = score
+                solution = set
+                final_cover = covered_already.union(elements)
     return solution, final_cover
 
 
